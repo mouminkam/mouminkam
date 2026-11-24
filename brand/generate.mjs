@@ -672,7 +672,7 @@ const head = header();
 written.push(await write(path.join(out, "header.svg"), head.svg));
 written.push(await write(path.join(out, "chapter-work.svg"), chapter({ index: "01", label: "Work", meta: "six feeds · all live" })));
 written.push(await write(path.join(out, "chapter-stack.svg"), chapter({ index: "02", label: "Stack", meta: "grouped by what the tools do" })));
-written.push(await write(path.join(out, "chapter-path.svg"), chapter({ index: "03", label: "Path", meta: "2022 — now" })));
+written.push(await write(path.join(out, "chapter-path.svg"), chapter({ index: "03", label: "Path", meta: "2023 — now" })));
 written.push(await write(path.join(out, "chapter-signal.svg"), chapter({ index: "04", label: "Signal", meta: `${person.city} · UTC+03:00` })));
 written.push(await write(path.join(out, "stack.svg"), stackPanel()));
 written.push(

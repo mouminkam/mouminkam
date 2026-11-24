@@ -109,15 +109,15 @@ so each front end runs on its own with `npm install && npm run dev`.
 
 <img src="assets/stack.svg" alt="Build: TypeScript, React, Next.js, Tailwind CSS, Zustand, TanStack Query, GSAP, Framer Motion. Serve: Node.js, Express, Laravel, PHP, PostgreSQL, MySQL, MongoDB, Supabase, Stripe. Ship: Flutter, Dart, Riverpod, Firebase, Jest, Playwright, Git, Vercel." width="100%">
 
-<img src="assets/chapter-path.svg" alt="03 · Path — 2022 to now" width="100%">
+<img src="assets/chapter-path.svg" alt="03 · Path — 2023 to now" width="100%">
 
 | When | Role | Where |
 | --- | --- | --- |
-| 2026 — now | IT department manager & team leader | Damascus |
-| 2025 | Freelance full-stack & mobile developer | Remote |
-| 2024 — 2025 | Front-end engineer | Peak Link |
-| 2024 | Full-stack developer trainee, MERN | Bytes4Future · Aga Khan Foundation |
-| 2022 | Back-end developer intern | Focal X Agency |
+| Apr 2026 — now | IT department manager & team leader | Damascus |
+| Jan 2025 — Feb 2026 | Front-end engineer | Peak Link |
+| Apr — Dec 2025 | Freelance full-stack & mobile developer | Remote |
+| Apr — Jul 2025 | Full-stack developer trainee, MERN | Bytes4Future · Aga Khan Foundation |
+| Jul — Nov 2023 | Back-end developer intern | Focal X Agency |
 
 <img src="assets/chapter-signal.svg" alt="04 · Signal — Damascus, UTC+03:00" width="100%">
 
