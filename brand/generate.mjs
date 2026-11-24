@@ -658,6 +658,70 @@ function button({ label, icon }) {
   return doc({ w, h: H, book, title: label, desc: label, body: body.join("") });
 }
 
+/* ------------------------------------------------------- linkedin banner */
+
+/**
+ * LinkedIn's cover, 1584×396. A still frame (LinkedIn shows a PNG), so the rain is
+ * drawn where it falls rather than animated. The left third stays quiet: the profile
+ * photo sits over it.
+ */
+function linkedinBanner() {
+  const BW = 1584;
+  const BH = 396;
+  const book = new Book();
+  const right = BW - 72;
+  const rnd = mulberry32(31);
+  let drops = "";
+  for (let i = 0; i < 140; i++) {
+    const x = rnd() * BW;
+    const y = rnd() * BH;
+    const l = 18 + rnd() * 48;
+    drops += `<line x1="${n(x)}" y1="${n(y)}" x2="${n(x + l * 0.12)}" y2="${n(y + l)}" opacity="${(0.05 + rnd() * 0.13).toFixed(2)}"/>`;
+  }
+  const size = 82;
+  const l1 = display(book, "Web, mobile and", { x: right, y: 150, size, anchor: "end", fill: C.bone, opacity: 0.45 });
+  const l2 = display(book, "the API between them.", { x: right, y: 272, size, anchor: "end" });
+  const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+  const body = [
+    `<rect width="${BW}" height="${BH}" fill="${C.void}"/>`,
+    `<g filter="url(#haze)"><ellipse cx="${BW * 0.62}" cy="${BH + 60}" rx="${BW * 0.5}" ry="130" fill="${C.signalDeep}"/></g>`,
+    `<g filter="url(#soft)">` +
+      `<rect x="1330" y="20" width="40" height="190" rx="10" fill="${C.signal}" opacity=".22"/>` +
+      `<rect x="560" y="60" width="30" height="150" rx="8" fill="${C.signal}" opacity=".12"/>` +
+      `<circle cx="900" cy="40" r="14" fill="${C.bone}" opacity=".12"/>` +
+      `</g>`,
+    `<g stroke="${C.bone}" stroke-width="1.1" stroke-linecap="round">${drops}</g>`,
+    l1.svg,
+    l2.svg,
+    detection(book, { x: l2.x - 22, y: 272 - capH - 18, w: l2.width + 44, h: capH + 36, label: "open to remote", score: 0.99, size: 19, len: 22, sw: 2.5 }),
+  ];
+  // A still frame has no running timecode: the REC row is just the camera and the clock zone.
+  const recLabel = osd(book, `REC · ${person.camera} · ${person.city} · UTC+03:00`, { x: right, y: 58, size: 19, anchor: "end", fill: C.bone });
+  body.push(
+    `<circle cx="${n(recLabel.x - 18)}" cy="${n(58 - 19 * 0.4)}" r="5" fill="${C.signal}"/>`,
+    recLabel.svg,
+    osd(book, "Full-stack · Mobile", { x: 560, y: 58, size: 19 }).svg,
+    itemLine(book, ["Next.js", "React", "TypeScript", "Node.js", "Laravel", "Flutter"], { x: right, y: 336, size: 19, anchor: "end" }),
+    osd(book, "moumen-alkamsheh.vercel.app", { x: right, y: 368, size: 19, anchor: "end", fill: C.signal }).svg,
+    `<path d="${brackets(18, 18, BW - 36, BH - 36, 26)}" stroke="${C.lineStrong}" stroke-width="2" fill="none"/>`,
+    `<rect width="${BW}" height="${BH}" fill="url(#vignette)" opacity=".7"/>`,
+    `<rect width="${BW}" height="${BH}" filter="url(#grain)" opacity=".16"/>`,
+  );
+  return doc({
+    w: BW,
+    h: BH,
+    book,
+    title: `${person.fullName} — LinkedIn cover`,
+    desc: `${person.thesis.join(" ")} Open to remote work.`,
+    defs:
+      grainDef +
+      vignetteDef +
+      `<filter id="soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="24"/></filter>` +
+      `<filter id="haze" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="56"/></filter>`,
+    body: body.join(""),
+  });
+}
+
 /* ------------------------------------------------------------------ build */
 
 async function write(file, content) {
@@ -697,6 +761,12 @@ for (const feed of feeds) {
     ),
   );
 }
+
+const banner = linkedinBanner();
+written.push(await write(path.join(out, "linkedin-banner.svg"), banner));
+const bannerPng = path.join(out, "linkedin-banner.png");
+await sharp(Buffer.from(banner), { density: 144 }).resize(3168, 792).png({ compressionLevel: 9 }).toFile(bannerPng);
+written.push(bannerPng);
 
 const reposAt = process.argv.includes("--repos") ? process.argv[process.argv.indexOf("--repos") + 1] : null;
 if (reposAt) {

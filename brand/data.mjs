@@ -16,7 +16,7 @@ export const person = {
   timeZone: "Asia/Damascus",
   portfolio,
   github: "https://github.com/mouminkam",
-  linkedin: "https://www.linkedin.com/in/moumen-alkamsheh-386555366/",
+  linkedin: "https://www.linkedin.com/in/moumen-alkamsheh/",
   email: "mo2min.2001@gmail.com",
   cv: `${portfolio}/Moumen-Alkamsheh-CV.pdf`,
 };

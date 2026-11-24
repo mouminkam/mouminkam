@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://moumen-alkamsheh.vercel.app"><img src="assets/btn-portfolio.svg" alt="Portfolio" height="44"></a>
-  <a href="https://www.linkedin.com/in/moumen-alkamsheh-386555366/"><img src="assets/btn-linkedin.svg" alt="LinkedIn" height="44"></a>
+  <a href="https://www.linkedin.com/in/moumen-alkamsheh/"><img src="assets/btn-linkedin.svg" alt="LinkedIn" height="44"></a>
   <a href="mailto:mo2min.2001@gmail.com"><img src="assets/btn-email.svg" alt="Email" height="44"></a>
   <a href="https://moumen-alkamsheh.vercel.app/Moumen-Alkamsheh-CV.pdf"><img src="assets/btn-cv.svg" alt="Download CV (PDF)" height="44"></a>
 </p>
@@ -123,7 +123,7 @@ so each front end runs on its own with `npm install && npm run dev`.
 
 Email is the quickest way to reach me: **[mo2min.2001@gmail.com](mailto:mo2min.2001@gmail.com)**.
 The [portfolio](https://moumen-alkamsheh.vercel.app) has the full case studies and the [CV](https://moumen-alkamsheh.vercel.app/Moumen-Alkamsheh-CV.pdf);
-[LinkedIn](https://www.linkedin.com/in/moumen-alkamsheh-386555366/) has the rest.
+[LinkedIn](https://www.linkedin.com/in/moumen-alkamsheh/) has the rest.
 
 <a href="https://moumen-alkamsheh.vercel.app">
   <img src="assets/footer.svg" alt="End of feed — Moumen Alkamsheh, full-stack and mobile developer, Damascus" width="100%">
