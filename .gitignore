@@ -1,0 +1,5 @@
+node_modules/
+# Fonts are fetched from their official releases (see brand/README.md), not redistributed here.
+brand/fonts/
+.DS_Store
+Thumbs.db

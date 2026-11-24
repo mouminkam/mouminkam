@@ -1,0 +1,15 @@
+{
+  "name": "mouminkam-brand",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The CAM_04 house style: generates every banner, feed and button used across github.com/mouminkam.",
+  "type": "module",
+  "scripts": {
+    "build": "node generate.mjs",
+    "build:repos": "node generate.mjs --repos ../.."
+  },
+  "devDependencies": {
+    "fontkit": "2.0.4",
+    "sharp": "0.35.4"
+  }
+}
