@@ -786,6 +786,308 @@ async function ogCard(feed, { focus = 0.5, line, fit = "height" }) {
   return doc({ w: OW, h: OH, book, title: `${feed.title} — ${feed.kicker}`, desc: line, defs: vignetteDef, body: body.join("") });
 }
 
+/* ------------------------------------------------------- friendly frames */
+
+/**
+ * The same house style with a warmer voice: rounded pills, a browser frame,
+ * sentence-case lines in Mona Sans. Used for the LinkedIn cover and the
+ * repositories' social previews.
+ */
+
+/** Rounded label. `dot` puts a signal dot before the text. */
+function pill(book, text, { x, y, size = 15, fill = C.bone, stroke = C.lineStrong, bg = "#0b0e0f", dot: withDot = false }) {
+  const t = text.toUpperCase();
+  const tw = book.width(F.mono, t, size, 0.08);
+  const h = size * 2.1;
+  const px = size * 0.95;
+  const dr = size * 0.27;
+  const lead = withDot ? dr * 2 + size * 0.55 : 0;
+  const w = tw + 2 * px + lead;
+  const parts = [`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(h / 2)}" fill="${bg}" stroke="${stroke}" stroke-width="1.5"/>`];
+  if (withDot) parts.push(`<circle cx="${n(x + px + dr)}" cy="${n(y + h / 2)}" r="${n(dr)}" fill="${C.signal}"/>`);
+  parts.push(book.text(F.mono, t, { x: x + px + lead, y: y + h / 2 + size * 0.36, size, tracking: 0.08, fill }).svg);
+  return { svg: parts.join(""), width: w, height: h };
+}
+
+/** A row of pills that wraps inside `max`. */
+function pillRow(book, items, { x, y, max, size = 15, gap = 10, rows = 2 }) {
+  let cx = x;
+  let cy = y;
+  let row = 1;
+  const out = [];
+  const h = size * 2.1;
+  for (const item of items) {
+    const probe = pill(new Book(), item, { x: 0, y: 0, size });
+    if (cx > x && cx + probe.width > x + max) {
+      if (row === rows) break;
+      row += 1;
+      cx = x;
+      cy += h + gap;
+    }
+    const p = pill(book, item, { x: cx, y: cy, size });
+    out.push(p.svg);
+    cx += p.width + gap;
+  }
+  return { svg: out.join(""), height: cy + h - y };
+}
+
+/** Sentence-case copy in Mona Sans, wrapped to `max`. */
+function para(book, text, { x, y, size, max, lead = 1.42, fill = C.bone, opacity = 0.86, maxLines = 4 }) {
+  const lines = [];
+  let cur = "";
+  for (const w of text.split(" ")) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (cur && book.width(F.sans, next, size) > max) {
+      lines.push(cur);
+      cur = w;
+    } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  const shown = lines.slice(0, maxLines);
+  return {
+    svg: shown.map((l, i) => book.text(F.sans, l, { x, y: y + i * size * lead, size, fill, opacity }).svg).join(""),
+    height: (shown.length - 1) * size * lead,
+  };
+}
+
+/** Display title split into lines that fit `max`. */
+function titleBlock(book, text, { x, y, size, max, gap = 12 }) {
+  const lines = [];
+  let cur = "";
+  for (const w of text.split(" ")) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (cur && book.width(F.display, next.toUpperCase(), size, -0.01) > max) {
+      lines.push(cur);
+      cur = w;
+    } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+  return {
+    svg: lines.map((l, i) => display(book, l, { x, y: y + i * (capH + gap), size }).svg).join(""),
+    last: y + (lines.length - 1) * (capH + gap),
+  };
+}
+
+const glow = (id, sd) => `<filter id="${id}" filterUnits="userSpaceOnUse" x="-3000" y="-3000" width="8000" height="8000"><feGaussianBlur stdDeviation="${sd}"/></filter>`;
+
+/** A browser window around a screen. `content` draws inside the viewport. */
+function browserFrame(book, { x, y, w, url, content }) {
+  const bar = 42;
+  const vh = Math.round(w / 1.6);
+  const h = bar + vh;
+  const r = 18;
+  const id = `vp${Math.round(x)}${Math.round(y)}`;
+  const urlW = Math.min(w - 170, book.width(F.mono, url, 13, 0.02) + 44);
+  return {
+    height: h,
+    defs:
+      `<clipPath id="${id}"><rect x="${n(x)}" y="${n(y + bar)}" width="${n(w)}" height="${n(vh)}"/></clipPath>` +
+      `<clipPath id="${id}o"><rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${r}"/></clipPath>`,
+    svg:
+      `<g filter="url(#lift)"><rect x="${n(x + 10)}" y="${n(y + 26)}" width="${n(w - 20)}" height="${n(h - 20)}" rx="${r}" fill="${C.signal}" opacity=".16"/></g>` +
+      `<g clip-path="url(#${id}o)">` +
+      `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="#0b0e0f"/>` +
+      [0, 1, 2].map((i) => `<circle cx="${n(x + 24 + i * 20)}" cy="${n(y + bar / 2)}" r="6" fill="${i === 0 ? C.signal : C.ash}" opacity="${i === 0 ? 0.9 : 0.35}"/>`).join("") +
+      `<rect x="${n(x + (w - urlW) / 2)}" y="${n(y + 9)}" width="${n(urlW)}" height="24" rx="12" fill="#151a1b"/>` +
+      book.text(F.mono, url, { x: x + w / 2, y: y + 26, size: 13, tracking: 0.02, anchor: "middle", fill: C.ash }).svg +
+      `<g clip-path="url(#${id})">${content({ x, y: y + bar, w, h: vh })}</g>` +
+      `</g>` +
+      `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${r}" fill="none" stroke="${C.lineStrong}" stroke-width="1.5"/>`,
+  };
+}
+
+/** Screenshot with the portfolio's detection boxes, scaled into a viewport. */
+async function shotWithBoxes(book, feed, active) {
+  const img = await screenshot(feed.image, 1280);
+  return (v) =>
+    `<image href="${img}" x="${n(v.x)}" y="${n(v.y)}" width="${n(v.w)}" height="${n(v.h)}" preserveAspectRatio="xMidYMid slice"/>` +
+    feed.detections
+      .map((d) => {
+        const [bx, by, bw, bh] = d.box;
+        const on = !active || active.includes(d.label);
+        return detection(book, { x: v.x + bx * v.w, y: v.y + by * v.h, w: bw * v.w, h: bh * v.h, label: d.label, score: d.score, tone: on ? "signal" : "bone", size: 12, len: 14, sw: 2 });
+      })
+      .join("");
+}
+
+/** The API has no screen, so its preview is a still of the traffic. */
+function apiStill(book) {
+  return (v) => {
+    const size = 14.5;
+    const pitch = 26;
+    const out = [`<rect x="${n(v.x)}" y="${n(v.y)}" width="${n(v.w)}" height="${n(v.h)}" fill="#030405"/>`];
+    out.push(osd(book, "access · /api/v1", { x: v.x + 24, y: v.y + 32, size: 12 }).svg);
+    out.push(`<rect x="${n(v.x + 24)}" y="${n(v.y + 46)}" width="${n(v.w - 48)}" height="1" fill="${C.lineStrong}"/>`);
+    apiLog.slice(0, 10).forEach(([method, route, status, ms, note], i) => {
+      const y = v.y + 76 + i * pitch;
+      const warn = status >= 400;
+      out.push(
+        book.text(F.mono, method, { x: v.x + 24, y, size, fill: warn ? C.signal : C.ash }).svg,
+        book.text(F.mono, route.length > 30 ? route.slice(0, 29) + "…" : route, { x: v.x + 92, y, size, fill: C.bone }).svg,
+        book.text(F.mono, String(status), { x: v.x + v.w - 118, y, size, fill: warn ? C.signal : C.bone }).svg,
+        book.text(F.mono, ms, { x: v.x + v.w - 24, y, size, anchor: "end", fill: C.ash }).svg,
+      );
+      if (note) out.push(detection(book, { x: v.x + 14, y: y - size - 6, w: v.w - 28, h: size + 16, label: note, score: 1, size: 11, len: 12, sw: 2, chipAt: "right" }));
+    });
+    return out.join("");
+  };
+}
+
+/** Shared background: black, two soft signal glows, a few still raindrops. */
+function friendlyBackdrop(w, h, seed) {
+  const rnd = mulberry32(seed);
+  let drops = "";
+  for (let i = 0; i < Math.round((w * h) / 9000); i++) {
+    const x = rnd() * w;
+    const y = rnd() * h;
+    const l = 14 + rnd() * 36;
+    drops += `<line x1="${n(x)}" y1="${n(y)}" x2="${n(x + l * 0.12)}" y2="${n(y + l)}" opacity="${(0.04 + rnd() * 0.09).toFixed(2)}"/>`;
+  }
+  return (
+    `<rect width="${w}" height="${h}" fill="${C.void}"/>` +
+    `<ellipse cx="${n(w * 0.18)}" cy="${n(h * 1.02)}" rx="${n(w * 0.55)}" ry="${n(h * 0.62)}" fill="url(#glowG)"/>` +
+    `<ellipse cx="${n(w * 0.88)}" cy="${n(-h * 0.04)}" rx="${n(w * 0.38)}" ry="${n(h * 0.5)}" fill="url(#glowG)" opacity=".75"/>` +
+    `<g stroke="${C.bone}" stroke-width="1.1" stroke-linecap="round">${drops}</g>`
+  );
+}
+
+const friendlyDefs = () =>
+  grainDef +
+  glow("lift", 22) +
+  `<radialGradient id="glowG"><stop offset="0" stop-color="${C.signalDeep}" stop-opacity=".95"/><stop offset=".55" stop-color="${C.signalDeep}" stop-opacity=".35"/><stop offset="1" stop-color="${C.signalDeep}" stop-opacity="0"/></radialGradient>`;
+
+/** GitHub social preview, 1280×640: who made it and what it is, in one glance. */
+async function socialCard(r) {
+  const SW = 1280;
+  const SH = 640;
+  const book = new Book();
+  const feed = feeds.find((f) => f.slug === r.feed);
+  const api = r.kind === "api";
+  const L = 72;
+  const colW = 520;
+  const body = [friendlyBackdrop(SW, SH, r.repo.length * 7 + 3)];
+
+  const status = pill(book, api ? "API" : "Live", { x: L, y: 62, size: 14, dot: true });
+  body.push(status.svg, osd(book, `${feed.feed} · ${person.camera}`, { x: L + status.width + 16, y: 62 + status.height / 2 + 5, size: 14 }).svg);
+
+  const t = titleBlock(book, feed.title, { x: L - 3, y: 210, size: 84, max: colW });
+  body.push(t.svg);
+  body.push(osd(book, r.surface, { x: L, y: t.last + 50, size: 16, fill: C.signal }).svg);
+  const p = para(book, r.hello, { x: L, y: t.last + 100, size: 23, max: colW, maxLines: 3 });
+  body.push(p.svg);
+  const pillsY = t.last + 100 + p.height + 36;
+  // Two rows only when they clear the signature at the bottom.
+  const rows = pillsY + 2 * 13 * 2.1 + 10 < SH - 104 ? 2 : 1;
+  body.push(pillRow(book, r.stack.slice(0, 6), { x: L, y: pillsY, max: colW, size: 13, rows }).svg);
+
+  body.push(
+    book.text(F.sans, `Built by ${person.fullName}`, { x: L, y: SH - 66, size: 19, fill: C.bone, opacity: 0.72 }).svg,
+    osd(book, "moumen-alkamsheh.vercel.app", { x: L, y: SH - 38, size: 13, fill: C.signal }).svg,
+  );
+
+  const fw = 560;
+  const url = api ? `${r.repo.toLowerCase()} · /api/v1` : r.live.replace("https://", "");
+  const content = api ? apiStill(book) : await shotWithBoxes(book, feed, r.active);
+  const fh = 42 + Math.round(fw / 1.6);
+  const frame = browserFrame(book, { x: SW - 64 - fw, y: (SH - fh) / 2, w: fw, url, content });
+  body.push(frame.svg);
+  body.push(`<rect width="${SW}" height="${SH}" filter="url(#grain)" opacity=".12"/>`);
+
+  return doc({ w: SW, h: SH, book, title: `${feed.title} — ${r.surface}`, desc: r.hello, defs: friendlyDefs(SW) + frame.defs, body: body.join("") });
+}
+
+/** The profile repository's preview: a hello and the six feeds. */
+async function profileCard() {
+  const SW = 1280;
+  const SH = 640;
+  const book = new Book();
+  const L = 72;
+  const body = [friendlyBackdrop(SW, SH, 11)];
+  const status = pill(book, "Online", { x: L, y: 62, size: 14, dot: true });
+  body.push(status.svg, osd(book, `${person.camera} · ${person.city} · UTC+03:00`, { x: L + status.width + 16, y: 62 + status.height / 2 + 5, size: 14 }).svg);
+  const size = 96;
+  const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+  const y1 = 196;
+  const y2 = y1 + capH + 50;
+  body.push(display(book, "Hi, I'm", { x: L - 4, y: y1, size, opacity: 0.55 }).svg);
+  const name = display(book, "Moumen.", { x: L - 4, y: y2, size });
+  body.push(name.svg);
+  body.push(detection(book, { x: name.x - 14, y: y2 - capH - 14, w: name.width + 28, h: capH + 28, label: "friendly human", score: 0.99, size: 13, len: 18, sw: 2.5 }));
+  const p = para(book, "Full-stack & mobile developer in Damascus. I build web apps, mobile apps and the API between them.", { x: L, y: y2 + 66, size: 23, max: 500, maxLines: 3 });
+  body.push(p.svg);
+  body.push(pillRow(book, ["Open to remote", "Next.js", "Laravel", "Flutter"], { x: L, y: y2 + 66 + p.height + 34, max: 520, size: 13 }).svg);
+  body.push(osd(book, "moumen-alkamsheh.vercel.app", { x: L, y: SH - 38, size: 13, fill: C.signal }).svg);
+
+  const gx = 652;
+  const gy = 62;
+  const gap = 14;
+  const tw = (SW - 64 - gx - gap) / 2;
+  const th = (SH - 2 * gy - 2 * gap) / 3;
+  const defs = [];
+  for (const [i, f] of feeds.entries()) {
+    const x = gx + (i % 2) * (tw + gap);
+    const y = gy + Math.floor(i / 2) * (th + gap);
+    const img = await screenshot(f.image, 640);
+    defs.push(`<clipPath id="t${i}"><rect x="${n(x)}" y="${n(y)}" width="${n(tw)}" height="${n(th)}" rx="14"/></clipPath>`);
+    body.push(
+      `<g clip-path="url(#t${i})"><image href="${img}" x="${n(x)}" y="${n(y)}" width="${n(tw)}" height="${n(th)}" preserveAspectRatio="xMidYMid slice"/>` +
+        `<rect x="${n(x)}" y="${n(y)}" width="${n(tw)}" height="${n(th)}" fill="#000" opacity=".12"/></g>` +
+        `<rect x="${n(x)}" y="${n(y)}" width="${n(tw)}" height="${n(th)}" rx="14" fill="none" stroke="${C.lineStrong}" stroke-width="1.5"/>` +
+        pill(book, f.title, { x: x + 12, y: y + th - 38, size: 11, bg: "#000000" }).svg,
+    );
+  }
+  body.push(`<rect width="${SW}" height="${SH}" filter="url(#grain)" opacity=".12"/>`);
+  return doc({ w: SW, h: SH, book, title: `${person.fullName} — GitHub`, desc: `${person.role} in ${person.city}.`, defs: friendlyDefs(SW) + defs.join(""), body: body.join("") });
+}
+
+/** LinkedIn cover, friendly cut. The left third stays clear for the profile photo. */
+function friendlyBanner() {
+  const BW = 1584;
+  const BH = 396;
+  const book = new Book();
+  const right = BW - 76;
+  const size = 92;
+  const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+  const base = 172;
+  const nameW = book.width(F.display, "MOUMEN.", size, -0.01);
+  const hiW = book.width(F.display, "HI, I'M", size, -0.01) + 46;
+  const x0 = right - nameW - hiW;
+  const body = [friendlyBackdrop(BW, BH, 31)];
+  body.push(display(book, "Hi, I'm", { x: x0, y: base, size, opacity: 0.55 }).svg);
+  const name = display(book, "Moumen.", { x: x0 + hiW, y: base, size });
+  body.push(name.svg);
+  body.push(detection(book, { x: name.x - 16, y: base - capH - 14, w: name.width + 30, h: capH + 28, label: "friendly human", score: 0.99, size: 15, len: 20, sw: 2.5 }));
+  body.push(book.text(F.sans, "I build web apps, mobile apps and the API between them.", { x: right, y: base + 62, size: 28, anchor: "end", fill: C.bone, opacity: 0.88 }).svg);
+
+  const row = [];
+  let px = right;
+  for (const item of ["Flutter", "Laravel", "Node.js", "React", "Next.js"]) {
+    px -= pill(new Book(), item, { x: 0, y: 0, size: 14 }).width;
+    row.push(pill(book, item, { x: px, y: base + 96, size: 14 }).svg);
+    px -= 10;
+  }
+  const remoteW = pill(new Book(), "Open to remote", { x: 0, y: 0, size: 14, dot: true }).width;
+  row.push(pill(book, "Open to remote", { x: px - remoteW, y: base + 96, size: 14, dot: true, stroke: C.signal, fill: C.signal }).svg);
+  body.push(row.join(""));
+
+  const meta = `${person.city} · UTC+03:00 · moumen-alkamsheh.vercel.app`;
+  const mw = osdWidth(book, meta, 14);
+  const online = pill(new Book(), "Online", { x: 0, y: 0, size: 14, dot: true });
+  body.push(pill(book, "Online", { x: right - mw - 16 - online.width, y: 34, size: 14, dot: true }).svg);
+  body.push(osd(book, meta, { x: right, y: 34 + online.height / 2 + 5, size: 14, anchor: "end" }).svg);
+  body.push(`<rect width="${BW}" height="${BH}" filter="url(#grain)" opacity=".12"/>`);
+  return doc({
+    w: BW,
+    h: BH,
+    book,
+    title: `${person.fullName} — LinkedIn cover`,
+    desc: "Hi, I'm Moumen. I build web apps, mobile apps and the API between them. Open to remote.",
+    defs: friendlyDefs(BW),
+    body: body.join(""),
+  });
+}
+
 /* ------------------------------------------------------------------ build */
 
 async function write(file, content) {
@@ -891,4 +1193,16 @@ for (const [slug, focus, line, fit] of [
   await fs.mkdir(path.dirname(file), { recursive: true });
   await sharp(Buffer.from(svg), { density: 144 }).resize(1200, 630).flatten({ background: "#000" }).jpeg({ quality: 88, mozjpeg: true }).toFile(file);
   console.log(`  og card  ${path.relative(path.resolve(here, ".."), file)}`);
+}
+
+// Friendly cut: the LinkedIn cover and each repository's social preview (Settings → Social preview).
+const social = path.join(out, "social");
+await fs.mkdir(social, { recursive: true });
+const toPng = (svg, w, h, file) =>
+  sharp(Buffer.from(svg), { density: 144 }).resize(w, h).flatten({ background: "#000" }).png({ compressionLevel: 9 }).toFile(file);
+await toPng(friendlyBanner(), 1584 * 2, 396 * 2, path.join(out, "linkedin-banner-hello.png"));
+await toPng(await profileCard(), 1280, 640, path.join(social, "mouminkam.png"));
+for (const r of repos) await toPng(await socialCard(r), 1280, 640, path.join(social, `${r.repo}.png`));
+for (const f of ["linkedin-banner-hello.png", ...(await fs.readdir(social)).map((s) => `social/${s}`)]) {
+  console.log(`  friendly  assets/${f}  ${((await fs.stat(path.join(out, f))).size / 1024).toFixed(0)} KB`);
 }

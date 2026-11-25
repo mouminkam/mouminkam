@@ -107,6 +107,7 @@ export const feeds = [
 export const repos = [
   {
     repo: "Promoo-dashboard-demo",
+    hello: "The admin console for Promoo, a marketplace for companies, influencers and service providers. It runs on its own, no backend needed.",
     feed: "promoo",
     surface: "Admin console",
     active: ["admin dashboard"],
@@ -115,6 +116,7 @@ export const repos = [
   },
   {
     repo: "Magic_Show",
+    hello: "The storefront for a handmade footwear brand from Damascus. Shop in English or Arabic, right to left included.",
     feed: "magic-show",
     surface: "Storefront",
     active: ["storefront"],
@@ -123,6 +125,7 @@ export const repos = [
   },
   {
     repo: "Magic-Show-dashboard",
+    hello: "The admin console behind Magic Show: 32 screens for orders, stock, coupons and customers.",
     feed: "magic-show",
     surface: "Admin console",
     active: ["dashboard"],
@@ -131,6 +134,7 @@ export const repos = [
   },
   {
     repo: "Magic-Show-back-end-",
+    hello: "The Laravel API that keeps Magic Show’s catalog, carts and orders in one place, with tests in CI.",
     feed: "magic-show",
     surface: "Backend API",
     kind: "api",
@@ -138,6 +142,7 @@ export const repos = [
   },
   {
     repo: "MerovaHealthcare",
+    hello: "An investor site for a pharmaceutical group, with a hero drawn live on canvas as you scroll. About 420 KB in total.",
     feed: "merova",
     surface: "Investor site",
     active: ["headline", "cta"],
@@ -146,6 +151,7 @@ export const repos = [
   },
   {
     repo: "Shahrayar",
+    hello: "Order Middle Eastern dishes in English, Arabic or Bulgarian, with Stripe checkout and a delivery map.",
     feed: "shahrayar",
     surface: "Ordering storefront",
     active: ["dish", "headline", "cta"],
@@ -154,6 +160,7 @@ export const repos = [
   },
   {
     repo: "Maison_-ternel",
+    hello: "Plan a wedding in the Gulf: find a venue, book it in four steps and keep the planning in one place.",
     feed: "maison-eternel",
     surface: "Events platform",
     active: ["headline", "gallery", "cta"],
