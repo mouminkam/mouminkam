@@ -114,7 +114,7 @@ so each front end runs on its own with `npm install && npm run dev`.
 | When | Role | Where |
 | --- | --- | --- |
 | Apr 2026 — now | IT department manager & team leader | Damascus |
-| Jan 2025 — Feb 2026 | Front-end engineer | Peak Link |
+| Jan 2025 — Feb 2026 | Front-end engineer (contract) | Peak Link |
 | Apr — Dec 2025 | Freelance full-stack & mobile developer | Remote |
 | Apr — Jul 2025 | Full-stack developer trainee, MERN | Bytes4Future · Aga Khan Foundation |
 | Jul — Nov 2023 | Back-end developer intern | Focal X Agency |
