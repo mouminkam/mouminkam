@@ -722,6 +722,70 @@ function linkedinBanner() {
   });
 }
 
+/* ----------------------------------------------------- link preview card */
+
+/**
+ * The Open Graph card a site shares on LinkedIn and elsewhere, 1200×630:
+ * a black panel with the project's name on the left, its screen on the right
+ * with the portfolio's detection boxes. `focus` (0–1) picks which part of the
+ * screenshot the right panel shows.
+ */
+async function ogCard(feed, { focus = 0.5, line, fit = "height" }) {
+  const OW = 1200;
+  const OH = 630;
+  const P = 500; // panel width
+  const book = new Book();
+  const shown = OW - P;
+  // "height" fills the panel and crops the sides; "width" shows the whole screen, letterboxed.
+  const imgW = fit === "width" ? shown : Math.round(OH * 1.6);
+  const imgH = imgW / 1.6;
+  const top = (OH - imgH) / 2;
+  const offset = fit === "width" ? 0 : -Math.round(Math.min(imgW - shown, Math.max(0, focus * imgW - shown / 2)));
+  const boxes = feed.detections
+    .map((d, i) => {
+      const [x, y, w, h] = d.box;
+      const bx = P + offset + x * imgW;
+      return detection(book, { x: bx, y: top + y * imgH, w: w * imgW, h: h * imgH, label: d.label, score: d.score, size: 15, len: 20, sw: 2.5, delay: i * 0.2 });
+    })
+    .join("");
+  const titleLines = feed.title.length > 12 ? feed.title.split(" ") : [feed.title];
+  const ts = 84;
+  const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * ts;
+  const firstBase = 250;
+  const titles = titleLines.map((t, i) => display(book, t, { x: 54, y: firstBase + i * (capH + 16), size: ts }).svg).join("");
+  const afterTitle = firstBase + (titleLines.length - 1) * (capH + 16);
+  const words = line.split(" ");
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (book.width(F.sans, next, 22) > P - 100 && cur) {
+      lines.push(cur);
+      cur = w;
+    } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  const body = [
+    `<rect width="${OW}" height="${OH}" fill="${C.void}"/>`,
+    `<image href="${await screenshot(feed.image, 1600)}" x="${P + offset}" y="${top}" width="${imgW}" height="${imgH}" preserveAspectRatio="xMidYMid slice"/>`,
+    `<rect x="${P}" width="${shown}" height="${OH}" fill="#000" opacity=".08"/>`,
+    `<linearGradient id="seam" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>`,
+    `<rect x="${P}" width="90" height="${OH}" fill="url(#seam)"/>`,
+    boxes,
+    `<rect width="${P}" height="${OH}" fill="${C.void}"/>`,
+    `<rect x="${P - 1}" width="2" height="${OH}" fill="${C.lineStrong}"/>`,
+    osd(book, `${feed.feed} · ${person.camera}`, { x: 54, y: 74, size: 18, fill: C.signal }).svg,
+    `<circle cx="${P - 54 - osdWidth(book, "REC", 18) - 14}" cy="${74 - 7}" r="5" fill="${C.signal}"/>`,
+    osd(book, "REC", { x: P - 54, y: 74, size: 18, anchor: "end", fill: C.bone }).svg,
+    titles,
+    osd(book, feed.kicker, { x: 54, y: afterTitle + 52, size: 17 }).svg,
+    ...lines.map((l, i) => book.text(F.sans, l, { x: 54, y: afterTitle + 104 + i * 32, size: 22, fill: C.bone, opacity: 0.82 }).svg),
+    osd(book, "moumen-alkamsheh.vercel.app", { x: 54, y: OH - 52, size: 16, fill: C.ashDim }).svg,
+    `<path d="${brackets(16, 16, OW - 32, OH - 32, 24)}" stroke="${C.bone}" stroke-opacity=".35" stroke-width="2" fill="none"/>`,
+  ];
+  return doc({ w: OW, h: OH, book, title: `${feed.title} — ${feed.kicker}`, desc: line, defs: vignetteDef, body: body.join("") });
+}
+
 /* ------------------------------------------------------------------ build */
 
 async function write(file, content) {
@@ -814,4 +878,17 @@ if (MISSING.size) console.warn(`! glyphs missing for: ${[...MISSING].join(" | ")
 for (const f of written) {
   const { size } = await fs.stat(f);
   console.log(`${(size / 1024).toFixed(1).padStart(7)} KB  ${path.relative(path.resolve(here, ".."), f)}`);
+}
+
+// Link preview cards (Open Graph) for the sites whose own previews were missing or broken.
+for (const [slug, focus, line, fit] of [
+  ["merova", 0.5, "An investor site built around a scroll-driven hero drawn live on canvas. The whole page weighs about 420 KB.", "width"],
+  ["shahrayar", 0.72, "Order Middle Eastern dishes in English, Arabic or Bulgarian, with right-to-left rendered on the server."],
+]) {
+  const feed = feeds.find((f) => f.slug === slug);
+  const svg = await ogCard(feed, { focus, line, fit });
+  const file = path.join(out, "og", `${slug}.jpg`);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await sharp(Buffer.from(svg), { density: 144 }).resize(1200, 630).flatten({ background: "#000" }).jpeg({ quality: 88, mozjpeg: true }).toFile(file);
+  console.log(`  og card  ${path.relative(path.resolve(here, ".."), file)}`);
 }
