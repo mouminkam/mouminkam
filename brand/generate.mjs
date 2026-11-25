@@ -1088,6 +1088,76 @@ function friendlyBanner() {
   });
 }
 
+/* ---------------------------------------------------------------- avatars */
+
+/**
+ * Square avatars, 1000×1000, drawn to survive a circle crop and a 40px render:
+ * everything that matters sits inside the inscribed circle, and the main mark
+ * stays readable when the image is tiny.
+ *   "mark"  — the monogram M. locked inside a detection box.
+ *   "hello" — HI with the signal cursor, the way a terminal says hello.
+ */
+function avatar(variant) {
+  const S = 1000;
+  const book = new Book();
+  const cx = S / 2;
+  const body = [
+    `<rect width="${S}" height="${S}" fill="${C.void}"/>`,
+    `<circle cx="${cx}" cy="${S * 0.58}" r="${S * 0.62}" fill="url(#avGlow)"/>`,
+  ];
+  const rnd = mulberry32(variant === "mark" ? 4 : 9);
+  let drops = "";
+  for (let i = 0; i < 46; i++) {
+    const x = rnd() * S;
+    const y = rnd() * S;
+    const l = 24 + rnd() * 50;
+    drops += `<line x1="${n(x)}" y1="${n(y)}" x2="${n(x + l * 0.12)}" y2="${n(y + l)}" opacity="${(0.05 + rnd() * 0.1).toFixed(2)}"/>`;
+  }
+  body.push(`<g stroke="${C.bone}" stroke-width="2.4" stroke-linecap="round">${drops}</g>`);
+
+  if (variant === "mark") {
+    const size = 520;
+    const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+    const m = book.width(F.display, "M", size, -0.01);
+    const dotR = 40;
+    const total = m + 18 + dotR * 2;
+    const x0 = cx - total / 2;
+    const base = S / 2 + capH / 2 + 10;
+    body.push(display(book, "M", { x: x0, y: base, size }).svg);
+    body.push(`<circle cx="${n(x0 + m + 18 + dotR)}" cy="${n(base - dotR)}" r="${dotR}" fill="${C.signal}"/>`);
+    const pad = 54;
+    body.push(
+      detection(book, { x: x0 - pad, y: base - capH - pad, w: total + 2 * pad, h: capH + 2 * pad, label: "moumen", score: 0.99, size: 40, len: 70, sw: 11 }),
+    );
+  } else {
+    const size = 560;
+    const capH = (F.display.font.capHeight / F.display.font.unitsPerEm) * size;
+    const hi = book.width(F.display, "HI", size, -0.01);
+    const cw = 150;
+    const gap = 24;
+    const total = hi + gap + cw;
+    const x0 = cx - total / 2;
+    const base = S / 2 + capH / 2 - 40;
+    body.push(display(book, "Hi", { x: x0, y: base, size }).svg);
+    body.push(`<rect x="${n(x0 + hi + gap)}" y="${n(base - 54)}" width="${cw}" height="54" fill="${C.signal}"/>`);
+    const p = pill(new Book(), "Moumen", { x: 0, y: 0, size: 40, dot: true });
+    body.push(pill(book, "Moumen", { x: cx - p.width / 2, y: base + 70, size: 40, dot: true, stroke: C.signal, fill: C.bone }).svg);
+  }
+
+  body.push(`<rect width="${S}" height="${S}" filter="url(#grain)" opacity=".1"/>`);
+  return doc({
+    w: S,
+    h: S,
+    book,
+    title: `${person.fullName} — avatar`,
+    desc: variant === "mark" ? "The letter M with a signal dot, inside a detection box labelled moumen." : "HI followed by an underscore cursor in signal, over a pill that reads Moumen.",
+    defs:
+      grainDef +
+      `<radialGradient id="avGlow"><stop offset="0" stop-color="${C.signalDeep}" stop-opacity=".95"/><stop offset=".6" stop-color="${C.signalDeep}" stop-opacity=".3"/><stop offset="1" stop-color="${C.signalDeep}" stop-opacity="0"/></radialGradient>`,
+    body: body.join(""),
+  });
+}
+
 /* ------------------------------------------------------------------ build */
 
 async function write(file, content) {
@@ -1205,4 +1275,12 @@ await toPng(await profileCard(), 1280, 640, path.join(social, "mouminkam.png"));
 for (const r of repos) await toPng(await socialCard(r), 1280, 640, path.join(social, `${r.repo}.png`));
 for (const f of ["linkedin-banner-hello.png", ...(await fs.readdir(social)).map((s) => `social/${s}`)]) {
   console.log(`  friendly  assets/${f}  ${((await fs.stat(path.join(out, f))).size / 1024).toFixed(0)} KB`);
+}
+
+// Avatars for GitHub and anywhere a square, circle-cropped mark is needed.
+for (const v of ["mark", "hello"]) {
+  const file = path.join(out, "avatar", `avatar-${v}.png`);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await sharp(Buffer.from(avatar(v)), { density: 72 }).resize(1000, 1000).png({ compressionLevel: 9 }).toFile(file);
+  console.log(`  avatar  assets/avatar/avatar-${v}.png`);
 }
